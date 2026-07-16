@@ -6,13 +6,13 @@ class Lattice(object):
     """
     Class to represent a lattice and perform Monte Carlo simulations on it.
     This can be used in the following way:
-    1. Create an instance of the class with the desired parameters. This will laso thermalize the lattice.
+    1. Create an instance of the class with the desired parameters. 
     2. Generate measurements of an observable using the generate_measurements method.
     3. Analyse the results of the measurements, using the Stats class (and the processing.py file)
     """
 
 
-    def __init__(self, N, beta, N_measurements, N_thermalization, width, HMC = False, epsilon = 0, N_steps = 0, dim = 4,mode = 0):
+    def __init__(self, N, beta, N_measurements, width, HMC = False, epsilon = 0, N_steps = 0, dim = 4,mode = 0):
         """
         Initializes the lattice with the given parameters.
 
@@ -20,7 +20,6 @@ class Lattice(object):
         N: int, number of sites in each dimension
         beta: float, inverse temperature
         N_measurements: int, number of measurements to be taken
-        N_thermalization: int, number of thermalization sweeps
         width: float, width of the gaussian used in the metropolis algorithm
         HMC: bool, whether to use the Hamiltonian Monte Carlo algorithm or metropolis
         epsilon: float, step size for HMC
@@ -30,7 +29,6 @@ class Lattice(object):
         self.width = width
         self.beta_ = beta
         self.N = N
-        self.N_thermalization = N_thermalization
         self.N_measurements = N_measurements
         self.dim = dim
         self.shape = [N for i in range(dim)] # shape of the lattice in numpy (library) format
@@ -47,10 +45,7 @@ class Lattice(object):
         # Hot start of the lattice
         #self.randomize()
 
-       # Thermalize the lattice
-        if self.N_thermalization > 0:
-            self.thermalize()
-
+       
     def action(self):
         """
         Computes the action of the lattice.
@@ -91,26 +86,8 @@ class Lattice(object):
                     for l in range(self.N):
 
                         self.metropolis(i, j, k, l)
-    def thermalize(self):
-        """
-        Thermalizes the lattice.
-        It uses the HMC algorithm if HMC is True, otherwise it uses the metropolis algorithm.
-        """
-        print("Thermalizing")
-        with alive_bar(self.N_thermalization) as bar: # this line just creates the progress bar, not important
-            for i in range(self.N_thermalization):
-                
-                if self.HMCs:
-                
-                    self.HMC(self.N_steps, self.epsilon,mode=self.mode) # call HMC
-                
-                else:
-                
-                    self.sweep()
-                
-                bar() # this line updates the progress bar, not important
-        
-        print("Thermalization Complete----------------")
+    
+    
       
     def generate_measurements(self, observable):
         """
@@ -343,7 +320,7 @@ class Lattice(object):
         (x,y,z,t) convention used elsewhere in this class.
         """
         N = lattice.shape[-1]
-        O_t = np.sum(Lattice.measure_local_operator(lattice, operator), axis=tuple(range(dim - 1))) # O(t) = sum_x O(x,t), shape (N,)
+        O_t = np.sum(Lattice.measure_local_operator(lattice, operator), axis=tuple(range(dim - 1)))/(lattice.shape[0]**(dim-1)) # O(t) = sum_x O(x,t), shape (N,)
 
         result = np.zeros(N + 1)
         for tau in range(N + 1):
@@ -354,7 +331,7 @@ class Lattice(object):
         """
         Measures the average of a local operator on the lattice.
         """
-        Ot = np.sum(Lattice.measure_local_operator(lattice, operator), axis=tuple(range(dim - 1)))
+        Ot = np.sum(Lattice.measure_local_operator(lattice, operator), axis=tuple(range(dim - 1)))/(lattice.shape[0]**(dim-1)) # O(t) = sum_x O(x,t), shape (N,)
         
         result = np.mean(Ot)
         return result

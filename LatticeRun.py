@@ -69,7 +69,7 @@ def calibration( N, beta, width_guess,HMC,  N_steps_guess=0,calibration_runs=10*
                 print(rate, N_tau)
                 return N_tau
             epsilon = 1/(N_tau)
-            lat = Lattice(N, beta,0,0,width, HMC, epsilon,N_tau)
+            lat = Lattice(N, beta,0,width, HMC, epsilon,N_tau)
             lat.calibration_runs(calibration_runs, calibration_runs)
             rate = lat.accepted/calibration_runs
             d_rate = 0.85-rate
@@ -130,7 +130,7 @@ def lookup(d_rate,N_tau,results):
         if abs(x) == d_rate and y == N_tau:
             return x
         
-def generate_phis( N,lambda_, N_measure,N_thermal,HMC = False,dim=4,guess = 40,mode=1,msq=0):
+def generate_phis( N,lambda_, N_measure,HMC = False,dim=4,guess = 40,mode=1,msq=0):
     msq =0
     if msq == 0:
             file_name = "Parameters/Calibration parameters beta = " + str(lambda_) + " N = " + str(N)+' HMC.npy'
@@ -153,18 +153,17 @@ def generate_phis( N,lambda_, N_measure,N_thermal,HMC = False,dim=4,guess = 40,m
                 calibration(N,lambda_,1)
             
             if msq == 0:
-                    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+                    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
             else:
-                    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+f' msq = {msq}.npy'
-                #file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+                    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+' msq = {msq}.npy'
             if HMC:
                 N_tau,epsilon = load_calibration(N,lambda_,HMC)
                 N_tau = int(N_tau)
-                model = Lattice(N,lambda_,N_measure,N_thermal,1,HMC,epsilon,N_tau,dim,mode=mode)
+                model = Lattice(N,lambda_,N_measure,1,HMC,epsilon,N_tau,dim,mode=mode)
             
             else:
                 width = load_calibration(N,lambda_,)
-                model = Lattice(N,lambda_,N_measure,N_thermal,width,False,0,0,dim,msq =msq) 
+                model = Lattice(N,lambda_,N_measure,width,False,0,0,dim,msq =msq) 
 
             results = model.generate_phis()
 
@@ -174,16 +173,20 @@ def generate_phis( N,lambda_, N_measure,N_thermal,HMC = False,dim=4,guess = 40,m
             continue
         break
     #print(Stats(vals).estimate())
+    if os.path.exists("Results/"+observable_name) == False:
+        os.makedirs("Results/"+observable_name)
     np.save(file_name,results)
     return N_tau
 
 
 
 
-def turn_phis_to_measurements( N,lambda_, N_measure,N_thermal, observable, observable_name,HMC = False):
-    file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+def turn_phis_to_measurements( N,lambda_, N_measure, observable, observable_name,HMC = False,thermalization_percent=0.1):
+    file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
     configurations = np.load(file_name)
     measurements = []
+    n_thermal = int(thermalization_percent * len(configurations))
+    configurations = configurations[n_thermal:]
     with alive_bar(len(configurations)) as bar:
         for config in configurations:
             measurements.append(observable(config))
@@ -191,12 +194,14 @@ def turn_phis_to_measurements( N,lambda_, N_measure,N_thermal, observable, obser
     measurements = np.array(measurements)
     if os.path.exists("Results/"+observable_name) == False:
         os.makedirs("Results/"+observable_name)
-    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
     np.save(file_name,measurements)
-def evaluate_observable_dontsave(N,lambda_, N_measure,N_thermal, observable):
-    file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+def evaluate_observable_dontsave(N,lambda_, N_measure, observable,thermalization_percent=0.1):
+    file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
     configurations = np.load(file_name)
     measurements = []
+    n_thermal = int(thermalization_percent * len(configurations))
+    configurations = configurations[n_thermal:]
     with alive_bar(len(configurations)) as bar:
         for config in configurations:
             measurements.append(observable(config))
@@ -212,15 +217,18 @@ def evaluate_observable_dontsave(N,lambda_, N_measure,N_thermal, observable):
 
     return result,err
 
-def evaluate_observable_1D_dontsave(N,lambda_, N_measure,N_thermal, observable,msq = 0):
+def evaluate_observable_1D_dontsave(N,lambda_, N_measure, observable,msq = 0,thermalization_percent=0.1):
    
     if msq == 0:
             
-        file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+        file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
     else:
-        file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+f' msq = {msq}.npy'
+        file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+f' msq = {msq}.npy'
     configurations = np.load(file_name)
+    print('Loaded configurations from',file_name)
     measurements = []
+    n_thermal = int(thermalization_percent * len(configurations))
+    configurations = configurations[n_thermal:]
     with alive_bar(len(configurations)) as bar:
 
         for config in configurations:
@@ -239,18 +247,20 @@ def evaluate_observable_1D_dontsave(N,lambda_, N_measure,N_thermal, observable,m
     return results,errs
 
     np.save(file_name,vals)
-def turn_phis_to_measurements_1D( N,lambda_, N_measure,N_thermal, observable, observable_name,HMC = False,dim=4,accel =False, mass = 0.1,msq = 0):
+def turn_phis_to_measurements_1D( N,lambda_, N_measure, observable, observable_name,HMC = False,dim=4,accel =False, mass = 0.1,msq = 0,thermalization_percent=0.1):
     
     if accel == False:
         if msq == 0:
                 
-            file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+            file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
         else:
-            file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+f' msq = {msq}.npy'
+            file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+f' msq = {msq}.npy'
     else:
-        file_name = "ChiralResults/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N)  + " N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+" Accel.npy"
+        file_name = "ChiralResults/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N)  + " N measurements = "  + str(N_measure)+" Accel.npy"
     configurations = np.load(file_name)
     measurements = []
+    n_thermal = int(thermalization_percent * len(configurations))
+    configurations = configurations[n_thermal:]
     with alive_bar(len(configurations)) as bar:
 
         for config in configurations:
@@ -260,6 +270,6 @@ def turn_phis_to_measurements_1D( N,lambda_, N_measure,N_thermal, observable, ob
     if os.path.exists("Results/"+observable_name) == False:
         os.makedirs("Results/"+observable_name)
    
-    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+" N Thermal = "  + str(N_thermal)+'.npy'
+    file_name = "Results/"+observable_name+"/"+observable_name+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
     vals = measurements.swapaxes(0,1)
     np.save(file_name,vals)

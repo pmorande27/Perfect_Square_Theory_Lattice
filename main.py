@@ -137,28 +137,36 @@ def vev_analysis():
     #plt.show()
 
 def main():
-    N = 15
+    N = 10
     beta = 5
     N_th = 1000
-    N_measure = 1000
+    N_measure = 10000
     #LatticeRun.calibration(N,beta,0.25,True,300,calibration_runs = 100)
     #LatticeRun.generate_phis(N,beta,1000,1000,True,4,guess = 200)
     #LatticeRun.turn_phis_to_measurements_1D(N,beta,1000,1000,lambda l: Lattice.measure_difference(4,l), "Difference",True,4)
-    fig,ax = plt.subplots()
     
-    for beta in [1,2,3,4,5]:
+    for beta in [2,3,4,5]:
         pass
-        #LatticeRun.generate_phis(N,beta,N_th,N_measure,True,4,guess = 200)
+        LatticeRun.generate_phis(N,beta,N_measure,True,4,guess = 150)
     
     
-    for beta in [2,3,4]:
+    
+    
+    
+def plotN_dependence():
+    fig,ax = plt.subplots()
+    N_measure = 1000
+
+
+    for N in [8,10]:
+        beta =2
         #LatticeRun.calibration(N,beta,0.25,True,300,calibration_runs = 100)
         #LatticeRun.generate_phis(N,beta,N_th,N_measure,True,4,guess = 200)
         operator = lambda l: Lattice.operator_gradient_sq(l)
 
         
-        result,err =LatticeRun.evaluate_observable_dontsave(N,beta,N_th,N_measure,lambda l: Lattice.measure_average_local_operator(4,l,operator))
-        results,errs =LatticeRun.evaluate_observable_1D_dontsave(N,beta,N_th,N_measure,lambda l: Lattice.measure_correlator_zero_momentum_operator(4,l,operator))
+        result,err =LatticeRun.evaluate_observable_dontsave(N,beta,N_measure,lambda l: Lattice.measure_average_local_operator(4,l,operator))
+        results,errs =LatticeRun.evaluate_observable_1D_dontsave(N,beta,N_measure,lambda l: Lattice.measure_correlator_zero_momentum_operator(4,l,operator))
 
 
         r = result**2
@@ -169,9 +177,13 @@ def main():
         err = np.sqrt(errs**2)
         results = results-r
         print(results,err)
+        forward = np.roll(results,-1)
+
         
-        ax.errorbar(range(len(results)),results,yerr = err,fmt = 's',label = f'$\\beta$ = {beta}')
-       # ax.set_yscale('log')
+
+        
+        
+        ax.errorbar(range(len(results)),results,yerr = err,fmt = 's',label = f'$N$ = {N}')
         ax.set_xlabel('t')
         operator_label = '$\langle(\\nabla\chi)^2(t)(\\nabla\chi)^2(0)\\rangle$'
         ax.set_ylabel(operator_label)
@@ -179,6 +191,7 @@ def main():
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
     plt.show()
+    
     
 def main2():
 
