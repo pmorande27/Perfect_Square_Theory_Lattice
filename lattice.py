@@ -325,8 +325,20 @@ class Lattice(object):
         result = np.zeros(N + 1)
         for tau in range(N + 1):
             result[tau] = np.mean(O_t * np.roll(O_t, -tau)) # average over time origins
+
         return result
-    
+
+
+    def measure_time_derivative_correlator_zero_momentum_operator(dim, lattice,):
+        phi_t = np.sum(lattice, axis=tuple(range(dim - 1))) /(lattice.shape[0]**(dim-1))# phi(t) = sum_x phi(x,t), shape (N,)
+        deriv_t = np.roll(phi_t, -1) - phi_t # time derivative of phi(t)
+        N = len(lattice)
+        result = np.zeros(N + 1)
+        for tau in range(N + 1):
+            result[tau] = np.mean(deriv_t * np.roll(deriv_t, -tau)) # average over time origins
+
+        return result
+
     def measure_average_local_operator(dim, lattice, operator):
         """
         Measures the average of a local operator on the lattice.

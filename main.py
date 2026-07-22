@@ -5,6 +5,7 @@ import plotting
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import processing
+import scipy.optimize as optimize
 def plot_moving_average():
     N = 8
     lambda_ = -100
@@ -107,7 +108,6 @@ def vev_analysis():
         #print(processing.process_corr_deri(N,lambda_,N_measurements[i],N_thermalization[i],True))
         #LatticeRun.turn_phis_to_measurements(N,lambda_,N_measurements[i],N_thermalization[i],lambda l: Lattice.measure_exponential_average_f(4,l,c,lambda_), "Exponential Average",True,4)
         #LatticeRun.turn_phis_to_measurements_1D(N,lambda_,N_measurements[i],N_thermalization[i],lambda l: Lattice.measure_exponential_f(4,l,c,lambda_), "Exponential",True,4,False,msq = msq)
-            processing.process_exponential(N,lambda_,N_measurements[i],N_thermalization[i],c,True,msq)
         #b+= [processing.process_exponential_average(N,lambda_,N_measurements[i],N_thermalization[i],c,True)[0]]
         #LatticeRun.measure_func_1D_3(N,lambda_,N_measurements[i],N_thermalization[i],lambda l: Lattice.measure_difference(4,l), "Difference",lambda l: Lattice.measure_correlation(4,l), "Correlation",lambda l: Lattice.measure_sq_array(4,l), "Square",True,4,mode=mode[i])
             #processing.process_exponential(N,lambda_,N_measurements[i],N_thermalization[i],c,True)
@@ -116,25 +116,7 @@ def vev_analysis():
         #processing.process_Square(N,lambda_,N_measurements[i],N_thermalization[i],True)
             #plotting.plot_exponential(N,lambda_,N_measurements[i],N_thermalization[i],c,True,msq = msq)
         #processing.analysis_corr_two_portions_print(N,lambda_,N_measurements[i],N_thermalization[i],good_indices,bad_indices,True)
-"""print(np.array(b)**0.5)
-    fig,axes = plt.subplots(3,sharex=True,figsize=(10,10))
 
-    exp = np.exp(-8*np.pi/(5*(np.array(lambdas))))
-    axes[0].plot(lambdas,np.array(b)**0.5,'o')
-    axes[0].spines['top'].set_visible(False)
-    axes[0].spines['right'].set_visible(False)
-    axes[0].set_ylabel("$\sqrt{\\langle hh^{\dagger}\\rangle}$")
-    axes[0].set_xlabel("$\lambda$")
-    #plt.plot(lambdas,exp*np.array(b)**0.5,'o')
-    axes[1].plot(lambdas,exp*np.array(b)**0.5,'o')
-    z = np.linspace(lambdas[0],lambdas[len(lambdas)-1],1000)
-    y = np.exp(-8*np.pi/(5*(np.array(z))))
-    
-
-    axes[2].plot(z,y,'--')
-    axes[2].set_ylim(0,10**3)
-    print(exp*np.array(b)**0.5)"""
-    #plt.show()
 
 def main():
     N = 20
@@ -143,24 +125,148 @@ def main():
     N_measure = 100000
     #LatticeRun.calibration(N,beta,0.25,True,300,calibration_runs = 100)
     #LatticeRun.generate_phis(N,beta,1000,1000,True,4,guess = 200)
-    #LatticeRun.turn_phis_to_measurements_1D(N,beta,1000,1000,lambda l: Lattice.measure_difference(4,l), "Difference",True,4)
     
     for beta in [2,3,4,5,6,7]:
         pass
-        LatticeRun.calibration(N,beta,0.25,True,400,calibration_runs = 600)
+        #LatticeRun.generate_phis(N,beta,N_measure,True,4,guess = 150)
+    #plotNmeasurements_dependence()
+    plotbeta_dependence_tderiv()
+    plotNmeasurements_dependence_tderiv()
+    
 
-        #LatticeRun.generate_phis(N,beta,N_measure,True,4,guess = 200)
+def plotNmeasurements_dependence_tderiv():
+    fig,ax = plt.subplots()
+    N_measure = 10000
+
+
+    for i,N_measure in enumerate([1000,10000]):
+        beta =1
+        N = 10
+        results,errs =LatticeRun.evaluate_observable_1D_dontsave(N,beta,N_measure,lambda l: Lattice.measure_time_derivative_correlator_zero_momentum_operator(4,l))
+
+
+        
+      
+
+        results = results
+        print(results)
+        forward = np.roll(results,-1)
+        popt,pcov = optimize.curve_fit(model, range(len(results)-1), forward[:-1], p0=(1, 0.1), bounds=([0, 0], [np.inf, np.inf]))
+        print(f'Optimal parameters for N={N}: {popt}')
+        xs = np.linspace(0, len(results)-1, 100)
+        ys = model(xs, *popt)
+        #ax.plot(xs, ys, label=f'Fit for $N$ = {N}')
+
+
+        
+
+        
+        
+        ax.errorbar(np.array(range(len(results)))+i*0.01,results,yerr = errs,fmt = 's',label = f'$N_m$ = {N_measure}')
+        #ax.errorbar(np.array(range(len(check_t)))+0.01,check_t,yerr = check_t_err,fmt = 's',label = f'Check $N_m$ = {N_measure}')
+        
+        
+        ax.set_xlabel('t')
+        operator_label = '$\langle(\\nabla_t\chi_t)(t)(\\nabla_t\chi_t)(0)\\rangle$'
+        ax.set_ylabel(operator_label)
+        ax.legend(frameon = False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+    plt.show()
+
+def plotbeta_dependence_tderiv():
+    fig,ax = plt.subplots()
+    N_measure = 1000
+
+
+    for i,beta in enumerate([1,2,3,4,5]):
+        N = 10
+        results,errs =LatticeRun.evaluate_observable_1D_dontsave(N,beta,N_measure,lambda l: Lattice.measure_time_derivative_correlator_zero_momentum_operator(4,l))
+
+
+        
+      
+
+        results = results
+        forward = np.roll(results,-1)
+        popt,pcov = optimize.curve_fit(model, range(len(results)-1), forward[:-1], p0=(1, 0.1), bounds=([0, 0], [np.inf, np.inf]))
+        print(f'Optimal parameters for N={N}: {popt}')
+        xs = np.linspace(0, len(results)-1, 100)
+        ys = model(xs, *popt)
+        #ax.plot(xs, ys, label=f'Fit for $N$ = {N}')
+
+
+        
+
+        
+        
+        ax.errorbar(np.array(range(len(results)))+i*0.01,results,yerr = errs,fmt = 's',label = f'$\\beta$ = {beta}')
+        #ax.errorbar(np.array(range(len(check_t)))+0.01,check_t,yerr = check_t_err,fmt = 's',label = f'Check $N_m$ = {N_measure}')
+        
+        
+        ax.set_xlabel('t')
+        operator_label = '$\langle(\\nabla_t\chi_t)(t)(\\nabla_t\chi_t)(0)\\rangle$'
+        ax.set_ylabel(operator_label)
+        ax.legend(frameon = False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+    plt.show()
     
     
-    
-    
-    
+def model(x, a, b):
+    return a * np.exp(-b * x)
+
+def plotNmeasurements_dependence():
+    fig,ax = plt.subplots()
+    N_measure = 10000
+
+
+    for i,N_measure in enumerate([100000]):
+        beta =6 
+        N = 10
+        #LatticeRun.calibration(N,beta,0.25,True,300,calibration_runs = 100)
+        #LatticeRun.generate_phis(N,beta,N_th,N_measure,True,4,guess = 200)
+        operator = lambda l: Lattice.operator_gradient_sq(l)
+
+        
+        result,err =LatticeRun.evaluate_observable_dontsave(N,beta,N_measure,lambda l: Lattice.measure_average_local_operator(4,l,operator))
+        results,errs =LatticeRun.evaluate_observable_1D_dontsave(N,beta,N_measure,lambda l: Lattice.measure_correlator_zero_momentum_operator(4,l,operator))
+
+
+        r = result**2
+        r_err = 2*result*err
+        
+        
+        err = np.sqrt(errs**2)
+        results = results-r
+        forward = np.roll(results,-1)
+        popt,pcov = optimize.curve_fit(model, range(len(results)-1), forward[:-1], p0=(1, 0.1), bounds=([0, 0], [np.inf, np.inf]))
+        print(f'Optimal parameters for N={N}: {popt}')
+        xs = np.linspace(0, len(results)-1, 100)
+        ys = model(xs, *popt)
+        #ax.plot(xs, ys, label=f'Fit for $N$ = {N}')
+
+
+        
+
+        
+        
+        ax.errorbar(np.array(range(len(results)))+i*0.1,results,yerr = err,fmt = 's',label = f'$N_m$ = {N_measure}')
+        
+        
+        ax.set_xlabel('t')
+        operator_label = '$\langle(\\nabla\chi)^2(t)(\\nabla\chi)^2(0)\\rangle$'
+        ax.set_ylabel(operator_label)
+        ax.legend(frameon = False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+    plt.show()
 def plotN_dependence():
     fig,ax = plt.subplots()
     N_measure = 1000
 
 
-    for N in [8,10]:
+    for N in [8,10,16]:
         beta =2
         #LatticeRun.calibration(N,beta,0.25,True,300,calibration_runs = 100)
         #LatticeRun.generate_phis(N,beta,N_th,N_measure,True,4,guess = 200)
@@ -173,19 +279,28 @@ def plotN_dependence():
 
         r = result**2
         r_err = 2*result*err
-        print(r,r_err)
         
         
         err = np.sqrt(errs**2)
         results = results-r
-        print(results,err)
         forward = np.roll(results,-1)
+        middle = len(results)//2
+        results_mid = results[:middle]
+        err_mid = err[:middle]
+        popt,pcov = optimize.curve_fit(model, range(1,middle), results_mid[1:], p0=(1, 0.1), bounds=([0, 0], [np.inf, np.inf]))
+        print(f'Optimal parameters for N={N}: {popt}')
+        xs = np.linspace(1, len(results_mid)-1, 100)
+        ys = model(xs, *popt)
+        #ax.plot(xs, ys, label=f'Fit for $N$ = {N}')
+
 
         
 
         
         
         ax.errorbar(range(len(results)),results,yerr = err,fmt = 's',label = f'$N$ = {N}')
+        
+        
         ax.set_xlabel('t')
         operator_label = '$\langle(\\nabla\chi)^2(t)(\\nabla\chi)^2(0)\\rangle$'
         ax.set_ylabel(operator_label)
