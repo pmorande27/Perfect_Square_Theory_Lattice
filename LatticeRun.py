@@ -123,7 +123,19 @@ def load_calibration( N, lambda_ ,HMC = False,msq = 0):
     else:  
 
         return values[0]
-
+def check_if_ensemble_exists(N,lambda_,N_measure,HMC = True,dim=4,msq = 0):
+    if msq == 0:
+        file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+'.npy'
+    else:
+        file_name = "Results/"+"phi"+"/"+"phi"+" beta = " + str(lambda_) + " N = " + str(N) +" N measurements = "  + str(N_measure)+f' msq = {msq}.npy'
+    if os.path.exists(file_name):
+        print('Ensemble exists, moving on to operator measurements')
+        print("================================================")
+        return True
+    else:
+        print('Ensemble does not exist needs to be generated')
+        print("================================================")
+        return False
 
 def lookup(d_rate,N_tau,results):
     for (x,y) in results:
@@ -131,17 +143,25 @@ def lookup(d_rate,N_tau,results):
             return x
         
 def generate_phis( N,lambda_, N_measure,HMC = False,dim=4,guess = 40,mode=1,msq=0):
+    print("================================================")
     msq =0
     if msq == 0:
             file_name = "Parameters/Calibration parameters beta = " + str(lambda_) + " N = " + str(N)+' HMC.npy'
     else:  
         file_name = "Parameters/Calibration parameters beta = " + str(lambda_) + " N = " + str(N)+f' HMC msq = {msq}.npy'
     if os.path.exists(file_name):
-        print('Calibration already done',file_name)
+        
+        print('Calibration already done, moving on to generating configurations')
+        print("================================================")
+
         pass
     else:
         print(file_name)
         calibration(N,lambda_,1,HMC,guess)
+        print('Calibration done')
+        print("================================================")
+
+
 
     observable_name = 'phi'
     count = 0

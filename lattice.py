@@ -125,7 +125,9 @@ class Lattice(object):
         observable: function, the observable to be measured
         """
         results = [0 for i in range(self.N_measurements)] # Initialize the array to store the results of the measurements
-        print("Generating Measurements")
+        print("Lattice Size: ", self.N, " Beta: ", self.beta_, " Number of Measurements: ", self.N_measurements)
+        print("Generating Measurements:")
+        print("--------------------------------------------")
         self.accepted = 0
         with alive_bar(self.N_measurements) as bar: # this line just creates the progress bar, not important
             for i in range(self.N_measurements):
@@ -140,8 +142,11 @@ class Lattice(object):
                 results[i] = self.lattice.copy() # store the result of the observable
                 
                 bar() # this line updates the progress bar, not important
-        print("Acceptance Rate: ", self.accepted/self.N_measurements)
-        print("Measurements Complete----------------", np.average(self.dhs)) # print the average of the exponential of the change in Hamiltonian, should be close to 1
+        print("--------------------------------------------")
+        print("Measurements Complete")
+        print("Accetance Rate: ", self.accepted/self.N_measurements)
+        print("Average of exp(-delta H): ", np.average(self.dhs)) # print the average of the exponential of the change in Hamiltonian, should be close to 1
+        print("================================================")
         
         return results
     def generate_measurements_3(self, observable_one, observable_two, observable_three):
@@ -311,6 +316,21 @@ class Lattice(object):
             result +=  0.5*(forward-lattice)**2+0.5*(backward-lattice)**2
 
         return result
+    def measure_correlator_general_t_operator(dim, lattice, operator):
+        N = lattice.shape[-1]
+        O_t = operator(lattice) # O(t) = sum_x O(x,t), shape (N,)
+        result = np.zeros(N + 1)
+        for tau in range(N + 1):
+            result[tau] = np.mean(O_t * np.roll(O_t, -tau)) # average over time origins
+
+        return result
+    def measure_vev_general_t_operator(dim, lattice, operator):
+        N = lattice.shape[-1]
+        O_t = operator(lattice) # O(t) = sum_x O(x,t), shape (N,)
+        result = np.mean(O_t) # average over time origins
+
+        return result
+
     def measure_correlator_zero_momentum_operator(dim, lattice, operator):
         """
         Measures the two-point function projected onto zero spatial momentum,
