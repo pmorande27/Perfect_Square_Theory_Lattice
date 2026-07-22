@@ -137,17 +137,19 @@ def vev_analysis():
     #plt.show()
 
 def main():
-    N = 10
+    N = 20
     beta = 5
     N_th = 1000
-    N_measure = 10000
+    N_measure = 100000
     #LatticeRun.calibration(N,beta,0.25,True,300,calibration_runs = 100)
     #LatticeRun.generate_phis(N,beta,1000,1000,True,4,guess = 200)
     #LatticeRun.turn_phis_to_measurements_1D(N,beta,1000,1000,lambda l: Lattice.measure_difference(4,l), "Difference",True,4)
     
-    for beta in [2,3,4,5]:
+    for beta in [2,3,4,5,6,7]:
         pass
-        LatticeRun.generate_phis(N,beta,N_measure,True,4,guess = 150)
+        LatticeRun.calibration(N,beta,0.25,True,400,calibration_runs = 600)
+
+        #LatticeRun.generate_phis(N,beta,N_measure,True,4,guess = 200)
     
     
     
