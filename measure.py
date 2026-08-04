@@ -208,7 +208,7 @@ def plot_correlator(ax,N, beta, N_measure, operator, operator_label):
     result,err = vev_operator(N, beta, N_measure, operator)
     disconnected = result**2
     disconnected_err = 2*result*err
-    #results = results-disconnected
+    results = results-disconnected
     errs = np.sqrt(errs**2+disconnected_err**2)
     print("Results: ", results)
     print("Errors: ", errs)
@@ -244,21 +244,68 @@ def local_gradient_sq(lattice):
     
     return gradient_sq
 
+def zero_momentum_local_operator(lattice, operator):
+    O = operator(lattice)
+    O_t = np.sum(O, axis=tuple(range(3)))/(lattice.shape[0]**3) # O(t) = sum_x O(x,t), shape (N,)
+    return O_t.copy()
 def zero_momentum_gradient_sq(lattice):
     O = local_gradient_sq(lattice)
     O_t = np.sum(O, axis=tuple(range(3)))/(lattice.shape[0]**3) # O(t) = sum_x O(x,t), shape (N
     return O_t.copy()
-def main():
+def measure_F_local(lattice):
+    dim = 4
+    result = 0
+    for i in range(dim):
+        forward = np.roll(lattice, -1, axis = i)
+        backward = np.roll(lattice, 1, axis = i)
+        result += forward + backward - 2*lattice + 0.5*(forward-lattice)**2+0.5*(backward-lattice)**2
+    return result
+def measure_phi_without_zero_mode(lattice):
+    phi = lattice.copy()
+    phi -= np.mean(phi)
+    return phi
+
+def plot_correlator_gradient_sq_t(N, beta, N_measure):
+    operator = lambda l: zero_momentum_gradient_sq(l)
+   
+    label = '$\langle(\\nabla\chi)^2(t)(\\nabla\chi)^2(0)\\rangle$'
+    fig,ax = plt.subplots()
+    plot_correlator(ax,N,beta,N_measure,operator,label)
+    plt.show()
+def plot_correlator_Neil_t(N, beta, N_measure):
     operator = lambda l: deriv_t(l)
     label = '$\langle(\\nabla_t\chi_t)(t)(\\nabla_t\chi_t)(0)\\rangle$'
     fig,ax = plt.subplots()
-    plot_correlator(ax,10,5,1000,operator,label)
+    plot_correlator(ax,N,beta,N_measure,operator,label)
     plt.show()
-    operator = lambda l: zero_momentum_gradient_sq(l)
-    label = '$\langle(\\nabla\\chi)^2(t)(\\nabla\\chi)^2(0)\\rangle$'
+    
+def plot_correlator_F_t(N, beta, N_measure):
+    O_t = lambda l: zero_momentum_local_operator(l, measure_F_local)
+    label = '$\langle F(t)F(0)\\rangle$'
+   
     fig,ax = plt.subplots()
-    plot_correlator(ax,10,5,1000,operator,label)
+    plot_correlator(ax,N,beta,N_measure,O_t,label)
+    plt.show()
+def plot_correlator_phi_t(N, beta, N_measure):
+    O_t = lambda l: zero_momentum_local_operator(l, measure_phi_without_zero_mode)
+    label = "$\langle \\chi(t)\'\\chi(0)\'\\rangle$"
+    
+    fig,ax = plt.subplots()
+    plot_correlator(ax,N,beta,N_measure,O_t,label)
     plt.show()
 
+def main():
+    N = 10
+    beta = 6
+    N_measure = 10**5
+
+    #plot_correlator_gradient_sq_t(N, beta, N_measure)
+    #plot_correlator_Neil_t(N, beta, N_measure)
+    #plot_correlator_F_t(N, beta, N_measure)
+    #plot_correlator_phi_t(N, beta, N_measure)
+    plot_correlator_Neil_t(N, beta, N_measure)
+
+
+   
 if __name__ == "__main__":
     main()
